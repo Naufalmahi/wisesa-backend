@@ -1,0 +1,23 @@
+## .NET Core
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+*.csproj.user
+launchSettings.json
+
+## Uploads (user-generated)
+wwwroot/uploads/
+
+## Secrets & Configs
+HelpDesk/appsettings.json
+HelpDesk/appsettings.Development.json
+
+## OS
+Thumbs.db
+*.DS_Store
