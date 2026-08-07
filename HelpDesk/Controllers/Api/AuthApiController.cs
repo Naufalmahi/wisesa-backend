@@ -81,6 +81,81 @@ namespace HelpDesk.Controllers.Api
             return Ok(new { message = "Registrasi berhasil.", userId = user.Id });
         }
 
+        [HttpPost("create-technician")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CreateTechnician([FromBody] CreateTechnicianDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage);
+                return BadRequest(new { message = string.Join(", ", errors) });
+            }
+
+            var existing = await _userManager.FindByEmailAsync(dto.Email);
+            if (existing != null)
+                return BadRequest(new { message = $"Email '{dto.Email}' sudah terdaftar dalam sistem." });
+
+            var user = new ApplicationUser
+            {
+                UserName = dto.Email,
+                Email = dto.Email,
+                Name = dto.Name,
+                Role = Models.Enums.UserRole.Technician,
+                IsActive = true,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, dto.Password);
+            if (!result.Succeeded)
+            {
+                var errorMsg = string.Join(", ", result.Errors.Select(e => e.Description));
+                return BadRequest(new { message = errorMsg });
+            }
+
+            try
+            {
+                await _userManager.AddToRoleAsync(user, "Technician");
+            }
+            catch
+            {
+                // Role property is already assigned to UserRole.Technician
+            }
+
+            return Ok(new
+            {
+                message = "Akun teknisi baru berhasil dibuat.",
+                user = new
+                {
+                    user.Id,
+                    user.Name,
+                    user.Email,
+                    role = user.Role.ToString()
+                }
+            });
+        }
+
+        [HttpGet("technicians")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetTechnicians()
+        {
+            var technicians = await _userManager.Users
+                .Where(u => u.Role == Models.Enums.UserRole.Technician)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Name,
+                    u.Email,
+                    role = u.Role.ToString(),
+                    u.IsActive,
+                    u.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(technicians);
+        }
+
         [HttpGet("me/{userId?}")]
         [AllowAnonymous] 
         public async Task<IActionResult> Me(string? userId = null)
@@ -247,6 +322,20 @@ namespace HelpDesk.Controllers.Api
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class CreateTechnicianDto
+    {
+        [Required(ErrorMessage = "Nama teknisi wajib diisi.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email wajib diisi.")]
+        [EmailAddress(ErrorMessage = "Format email tidak valid.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password wajib diisi.")]
+        [StringLength(100, ErrorMessage = "Password minimal {2} karakter.", MinimumLength = 6)]
+        public string Password { get; set; } = string.Empty;
     }
 
     public class UpdateProfileDto

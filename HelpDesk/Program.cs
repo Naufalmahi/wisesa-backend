@@ -25,8 +25,8 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 /* 2. Konfigurasi ASP.NET Core Identity */
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
 {
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequiredLength = 6;
@@ -214,6 +214,24 @@ static async Task SeedRolesAndAdminAsync(IServiceProvider serviceProvider)
             var result = await userManager.CreateAsync(adminUser, "Admin123");
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(adminUser, "Admin");
+        }
+
+        var teknisiEmail = "teknisi@helpdesk.com";
+        var teknisiUser = await userManager.FindByEmailAsync(teknisiEmail);
+        if (teknisiUser == null)
+        {
+            teknisiUser = new ApplicationUser
+            {
+                UserName = teknisiEmail,
+                Email = teknisiEmail,
+                Name = "Teknisi Wisecon",
+                Role = UserRole.Technician,
+                IsActive = true,
+                EmailConfirmed = true
+            };
+            var result = await userManager.CreateAsync(teknisiUser, "Teknisi123");
+            if (result.Succeeded)
+                await userManager.AddToRoleAsync(teknisiUser, "Technician");
         }
     }
     catch (Exception ex)
